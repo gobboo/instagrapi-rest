@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pathlib import Path
 import requests
 import json
@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from instagrapi.types import (
     Story, StoryHashtag, StoryLink,
     StoryLocation, StoryMention, StorySticker,
-    Media, Location, Usertag
+    Media, Location, Usertag, UserShort
 )
 from helpers import photo_upload_story_as_video, photo_upload_story_as_photo, photo_upload_post
 from dependencies import ClientStorage, get_clients
@@ -26,7 +26,7 @@ async def photo_upload_to_story(sessionid: str = Form(...),
                                 file: UploadFile = File(...),
                                 as_video: Optional[bool] = Form(False),
                                 caption: Optional[str] = Form(""),
-                                mentions: Optional[List[StoryMention]] = Form([]),
+                                mentions: Optional[List[StoryMention]] = [],
                                 locations: Optional[List[StoryLocation]] = Form([]),
                                 links: Optional[List[StoryLink]] = Form([]),
                                 hashtags: Optional[List[StoryHashtag]] = Form([]),
@@ -60,7 +60,7 @@ async def photo_upload_to_story_by_url(sessionid: str = Form(...),
                                 url: AnyHttpUrl = Form(...),
                                 as_video: Optional[bool] = Form(False),
                                 caption: Optional[str] = Form(""),
-                                mentions: Optional[List[StoryMention]] = Form([]),
+                                mentions: str = Form([]),
                                 locations: Optional[List[StoryLocation]] = Form([]),
                                 links: Optional[List[StoryLink]] = Form([]),
                                 hashtags: Optional[List[StoryHashtag]] = Form([]),
@@ -69,12 +69,19 @@ async def photo_upload_to_story_by_url(sessionid: str = Form(...),
                                 ) -> Story:
     """Upload photo to story by URL to file
     """
+    mentions = json.loads(mentions)
+
+    converted_mentions = []
+    for mention in mentions:
+        user = UserShort(**mention['user'])
+        converted_mentions.append(StoryMention(user=user, x=mention['x'], y=mention['y'], width=mention['width'], height=mention['height']))
+
     cl = clients.get(sessionid)
     content = requests.get(url).content
     if as_video:
         return await photo_upload_story_as_video(
             cl, content, caption=caption,
-            mentions=mentions,
+            mentions=converted_mentions,
             links=links,
             hashtags=hashtags,
             locations=locations,
@@ -82,7 +89,7 @@ async def photo_upload_to_story_by_url(sessionid: str = Form(...),
     else:
         return await photo_upload_story_as_photo(
             cl, content, caption=caption,
-            mentions=mentions,
+            mentions=converted_mentions,
             links=links,
             hashtags=hashtags,
             locations=locations,

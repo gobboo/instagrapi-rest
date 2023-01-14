@@ -51,7 +51,7 @@ async def video_upload_to_story(sessionid: str = Form(...),
 async def video_upload_to_story_by_url(sessionid: str = Form(...),
                                        url: AnyHttpUrl = Form(...),
                                        caption: Optional[str] = Form(''),
-                                       mentions: List[StoryMention] = [],
+                                       mentions: List[dict] = [],
                                        locations: List[StoryLocation] = [],
                                        links: List[StoryLink] = [],
                                        hashtags: List[StoryHashtag] = [],
@@ -60,6 +60,7 @@ async def video_upload_to_story_by_url(sessionid: str = Form(...),
                                        ) -> Story:
     """Upload video to story by URL to file
     """
+    print(mentions)
     cl = clients.get(sessionid)
     content = requests.get(url).content
     return await video_upload_story(
